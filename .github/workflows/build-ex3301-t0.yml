@@ -35,7 +35,6 @@ jobs:
       - name: Install build dependencies
         run: |
           sudo apt-get update
-          sudo apt-get update
           sudo apt-get install -y build-essential clang flex bison g++ gawk \
             gcc-multilib g++-multilib gettext git libncurses5-dev libssl-dev \
             python3 python3-full rsync unzip zlib1g-dev file wget ccache xsltproc
@@ -43,15 +42,15 @@ jobs:
       - name: Apply EN751627/MT7530 patches
         working-directory: openwrt
         run: |
-          # Copy relevant patches from patches repo
-          cp ../patches/patches-7.3/781-v7.3-net-dsa-mt7530-add-en7528-support.patch target/linux/econet/patches-6.6/
-          cp ../patches/patches-7.3/782-net-dsa-mt7530-add-en751627-support.patch target/linux/econet/patches-6.6/
-          cp ../patches/patches-7.3/783-net-dsa-mt7530-en751627-five-user-ports.patch target/linux/econet/patches-6.6/
+          # Copy relevant patches from patches repo (correct paths)
+          cp ../patches/openwrt-overlay/target/linux/econet/patches-6.18/781-v7.3-net-dsa-mt7530-add-en7528-support.patch target/linux/econet/patches-6.6/
+          cp ../patches/openwrt-overlay/target/linux/econet/patches-6.18/782-net-dsa-mt7530-add-en751627-support.patch target/linux/econet/patches-6.6/
+          cp ../patches/openwrt-overlay/target/linux/econet/patches-6.18/783-net-dsa-mt7530-en751627-five-user-ports.patch target/linux/econet/patches-6.6/
           
           # PCIe PHY patches
-          cp ../patches/patches-7.1/030-v7.1-mips-dts-Add-PCIe-to-EcoNet-EN751221.patch target/linux/econet/patches-6.6/
-          cp ../patches/patches-7.2/033-01-v7.2-dt-bindings-phy-Document-PCIe-PHY-in-EcoNet-EN751221.patch target/linux/econet/patches-6.6/
-          cp ../patches/patches-7.2/033-02-v7.2-phy-econet-Add-PCIe-PHY-driver-for-EcoNet-EN751221-a.patch target/linux/econet/patches-6.6/
+          cp ../patches/openwrt-overlay/target/linux/econet/patches-6.18/030-v7.1-mips-dts-Add-PCIe-to-EcoNet-EN751221.patch target/linux/econet/patches-6.6/
+          cp ../patches/openwrt-overlay/target/linux/econet/patches-6.18/033-01-v7.2-dt-bindings-phy-Document-PCIe-PHY-in-EcoNet-EN751221.patch target/linux/econet/patches-6.6/
+          cp ../patches/openwrt-overlay/target/linux/econet/patches-6.18/033-02-v7.2-phy-econet-Add-PCIe-PHY-driver-for-EcoNet-EN751221-a.patch target/linux/econet/patches-6.6/
 
       - name: Create ZyXEL EX3301-T0 profile
         working-directory: openwrt
