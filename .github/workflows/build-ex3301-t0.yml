@@ -64,8 +64,8 @@ jobs:
 
           # Run defconfig to expand defaults
           make defconfig
-          # Auto-resolve new config symbols non-interactively
-          make olddefconfig
+          # Auto-resolve new config symbols non-interactively (pipe yes to prevent syncconfig prompts)
+          yes "" | make olddefconfig 2>&1 || true
 
           # Add missing PHY/PCI symbols to EcoNet kernel config files to prevent syncconfig prompts
           for cfg in target/linux/econet/config-* target/linux/econet/en751627/config-*; do
