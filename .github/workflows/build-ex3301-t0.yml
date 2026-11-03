@@ -32,6 +32,13 @@ jobs:
           git checkout ex3301
           echo "Checked out PR #22945 branch ex3301"
 
+      - name: Fetch and merge PR #25475 (Ethernet support)
+        working-directory: openwrt
+        run: |
+          git fetch origin pull/25475/head:pr25475
+          git merge --no-edit pr25475
+          echo "Merged PR #25475 branch pr25475"
+
       - name: Install build dependencies
         run: |
           sudo apt-get update
@@ -88,7 +95,7 @@ jobs:
         working-directory: openwrt
         run: |
           set -o pipefail
-          make FORCE=1 -j$(nproc) 2>&1 | tee build.log
+          make FORCE=1 -j$(nproc) < /dev/null 2>&1 | tee build.log
           BUILD_EXIT_CODE=$?
           if [ "$BUILD_EXIT_CODE" -ne 0 ]; then
             echo "=== PARALEL DERLEME KIRILDI! HATA DETAYI ICIN V=s CALISTIRILIYOR ==="
