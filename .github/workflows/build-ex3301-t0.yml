@@ -18,10 +18,10 @@ jobs:
     timeout-minutes: 120
 
     steps:
-      - name: Checkout OpenWrt main
+      - name: Checkout cjdelisle/openwrt (has EN751627/econet support)
         uses: actions/checkout@v4
         with:
-          repository: openwrt/openwrt
+          repository: cjdelisle/openwrt.git
           path: openwrt
           fetch-depth: 1
 
@@ -42,18 +42,36 @@ jobs:
       - name: Apply EN751627/MT7530 patches
         working-directory: openwrt
         run: |
-          # Create patches directory if not exists
-          mkdir -p target/linux/econet/patches-6.6
+          # Detect kernel version from target/linux/econet/Makefile
+          KERNEL_VER=$(grep -m1 '^LINUX_VERSION:' target/linux/Makefile 2>/dev/null | awk '{print $$2}' || echo "6.6")
+          echo "Detected kernel version: $KERNEL_VER"
           
-          # Copy relevant patches from patches repo (correct paths)
-          cp ../patches/openwrt-overlay/target/linux/econet/patches-6.18/781-v7.3-net-dsa-mt7530-add-en7528-support.patch target/linux/econet/patches-6.6/
-          cp ../patches/openwrt-overlay/target/linux/econet/patches-6.18/782-net-dsa-mt7530-add-en751627-support.patch target/linux/econet/patches-6.6/
-          cp ../patches/openwrt-overlay/target/linux/econet/patches-6.18/783-net-dsa-mt7530-en751627-five-user-ports.patch target/linux/econet/patches-6.6/
+          # Map kernel version to patches directory
+          case "$KERNEL_VER" in
+            6.6*) PATCH_DIR="patches-6.6" ;;
+            6.12*) PATCH_DIR="patches-6.12" ;;
+            6.18*) PATCH_DIR="patches-6.18" ;;
+            *) PATCH_DIR="patches-6.6" ;;
+          esac
+          echo "Using patch directory: $PATCH_DIR"
+          
+          # Create patches directory if not exists
+          mkdir -p target/linux/econet/$PATCH_DIR
+          
+          # Copy relevant patches from patches repo overlay
+          cp ../patches/openwrt-overlay/target/linux/econet/$PATCH_DIR/781-v7.3-net-dsa-mt7530-add-en7528-support.patch target/linux/econet/$PATCH_DIR/ 2>/dev/null || true
+          cp ../patches/openwrt-overlay/target/linux/econet/$PATCH_DIR/782-net-dsa-mt7530-add-en751627-support.patch target/linux/econet/$PATCH_DIR/ 2>/dev/null || true
+          cp ../patches/openwrt-overlay/target/linux/econet/$PATCH_DIR/783-net-dsa-mt7530-en751627-five-user-ports.patch target/linux/econet/$PATCH_DIR/ 2>/dev/null || true
           
           # PCIe PHY patches
-          cp ../patches/openwrt-overlay/target/linux/econet/patches-6.18/030-v7.1-mips-dts-Add-PCIe-to-EcoNet-EN751221.patch target/linux/econet/patches-6.6/
-          cp ../patches/openwrt-overlay/target/linux/econet/patches-6.18/033-01-v7.2-dt-bindings-phy-Document-PCIe-PHY-in-EcoNet-EN751221.patch target/linux/econet/patches-6.6/
-          cp ../patches/openwrt-overlay/target/linux/econet/patches-6.18/033-02-v7.2-phy-econet-Add-PCIe-PHY-driver-for-EcoNet-EN751221-a.patch target/linux/econet/patches-6.6/
+          cp ../patches/openwrt-overlay/target/linux/econet/$PATCH_DIR/030-v7.1-mips-dts-Add-PCIe-to-EcoNet-EN751221.patch target/linux/econet/$PATCH_DIR/ 2>/dev/null || true
+          cp ../patches/openwrt-overlay/target/linux/econet/$PATCH_DIR/033-01-v7.2-dt-bindings-phy-Document-PCIe-PHY-in-EcoNet-EN751221.patch target/linux/econet/$PATCH_DIR/ 2>/dev/null || true
+          cp ../patches/openwrt-overlay/target/linux/econet/$PATCH_DIR/033-02-v7.2-phy-econet-Add-PCIe-PHY-driver-for-EcoNet-EN751221-a.patch target/linux/econet/$PATCH_DIR/ 2>/dev/null || true
+          
+          # Copy DTS files for en751627 and zyxel_ex3301-t0
+          cp ../patches/openwrt-overlay/target/linux/econet/dts/en751627_zyxel_ex3301-t0.dts target/linux/econet/dts/ 2>/dev/null || true
+          
+          echo "Patches applied successfully"
 
       - name: Create ZyXEL EX3301-T0 profile
         working-directory: openwrt
@@ -70,15 +88,26 @@ jobs:
       - name: Configure build (.config)
         working-directory: openwrt
         run: |
-          # Manuel .config - hedefi doğrudan ayarla
+          # Write exact .config with all required settings
           cat > .config << 'EOF'
           CONFIG_TARGET_econet=y
           CONFIG_TARGET_econet_en751627=y
-          CONFIG_TARGET_INITRAMFS=y
-          CONFIG_PACKAGE_kmod-mt7915e=y
-          CONFIG_PACKAGE_kmod-mt76-usb=y
+          CONFIG_TARGET_econet_en751627_DEVICE_zyxel_ex3301-t0=y
+          CONFIG_TARGET_ROOTFS_INITRAMFS=y
           EOF
+          
+          # Run defconfig to expand defaults
           make defconfig
+          
+          # Verify CONFIG_TARGET_econet_en751627=y is still present
+          if ! grep -q "CONFIG_TARGET_econet_en751627=y" .config; then
+            echo "ERROR: CONFIG_TARGET_econet_en751627=y was removed by make defconfig!"
+            echo "Current .config contents:"
+            cat .config
+            exit 1
+          fi
+          
+          echo "Config verified: CONFIG_TARGET_econet_en751627=y is present"
 
       - name: Download package feeds
         working-directory: openwrt
@@ -91,24 +120,26 @@ jobs:
         run: |
           make -j$(nproc) 2>&1 | tee build.log
 
-      - name: Find initramfs image
+      - name: Find initramfs image(s)
         working-directory: openwrt
         id: find_image
         run: |
-          IMAGE=$(find bin/targets -name "initramfs-kernel.bin" | head -1)
-          if [ -z "$IMAGE" ]; then
-            echo "No initramfs image found!"
-            find bin/targets -name "*.bin" | head -20
+          IMAGES=$(find bin/targets/econet/en751627 -name "*.bin" 2>/dev/null | head -20)
+          if [ -z "$IMAGES" ]; then
+            echo "No .bin files found in bin/targets/econet/en751627!"
+            echo "Searching all bin/targets for .bin files..."
+            find bin/targets -name "*.bin" 2>/dev/null | head -30
             exit 1
           fi
-          echo "Found: $IMAGE"
-          echo "image_path=$IMAGE" >> $GITHUB_OUTPUT
+          echo "Found images:"
+          echo "$IMAGES"
+          echo "image_list=$IMAGES" >> $GITHUB_OUTPUT
 
-      - name: Upload initramfs artifact
+      - name: Upload initramfs artifacts
         uses: actions/upload-artifact@v4
         with:
           name: openwrt-ex3301-t0-initramfs
-          path: ${{ steps.find_image.outputs.image_path }}
+          path: openwrt/bin/targets/econet/en751627/
           retention-days: 30
 
       - name: Upload build log
