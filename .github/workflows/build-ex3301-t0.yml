@@ -62,12 +62,7 @@ jobs:
           CONFIG_TARGET_ROOTFS_INITRAMFS=y
           EOF
 
-          # Run defconfig to expand defaults
-          make defconfig
-          # Auto-resolve new config symbols non-interactively (pipe yes to prevent syncconfig prompts)
-          yes "" | make olddefconfig 2>&1 || true
-
-          # Add missing PHY/PCI symbols to EcoNet kernel config files to prevent syncconfig prompts
+          # Add missing PHY/PCI symbols to EcoNet kernel config files BEFORE defconfig to prevent syncconfig prompts
           for cfg in target/linux/econet/config-* target/linux/econet/en751627/config-*; do
             if [ -f "$cfg" ]; then
               echo "CONFIG_PHY_EN7528_PCIE=y" >> "$cfg"
@@ -76,6 +71,9 @@ jobs:
               echo "CONFIG_PCI_EN7528=y" >> "$cfg"
             fi
           done
+
+          # Run defconfig to expand defaults (pipe yes to prevent syncconfig prompts)
+          yes "" | make defconfig
 
           # Verify CONFIG_TARGET_econet_en751627_DEVICE_zyxel_ex3301-t0=y is still present AFTER defconfig
           grep "CONFIG_TARGET_econet_en751627_DEVICE_zyxel_ex3301-t0=y" .config || {
