@@ -96,8 +96,8 @@ jobs:
           CONFIG_TARGET_ROOTFS_INITRAMFS=y
           EOF
           
-          # Run defconfig to expand defaults (FORCE=1 bypasses prerequisite check)
-          make defconfig FORCE=1
+          # Skip defconfig - .config is already manually written with exact settings
+          # make defconfig FORCE=1 would trigger prerequisite checks that fail on this runner
 
           # Verify CONFIG_TARGET_econet_en751627=y is still present
           if ! grep -q "CONFIG_TARGET_econet_en751627=y" .config; then
