@@ -21,7 +21,7 @@ jobs:
       - name: Checkout cjdelisle/openwrt (has EN751627/econet support)
         uses: actions/checkout@v4
         with:
-          repository: cjdelisle/openwrt.git
+          repository: cjdelisle/openwrt
           path: openwrt
           fetch-depth: 1
 
