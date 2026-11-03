@@ -96,9 +96,9 @@ jobs:
           CONFIG_TARGET_ROOTFS_INITRAMFS=y
           EOF
           
-          # Run defconfig to expand defaults
-          make defconfig
-          
+          # Run defconfig to expand defaults (FORCE=1 bypasses prerequisite check)
+          make defconfig FORCE=1
+
           # Verify CONFIG_TARGET_econet_en751627=y is still present
           if ! grep -q "CONFIG_TARGET_econet_en751627=y" .config; then
             echo "ERROR: CONFIG_TARGET_econet_en751627=y was removed by make defconfig!"
@@ -106,7 +106,7 @@ jobs:
             cat .config
             exit 1
           fi
-          
+
           echo "Config verified: CONFIG_TARGET_econet_en751627=y is present"
 
       - name: Download package feeds
