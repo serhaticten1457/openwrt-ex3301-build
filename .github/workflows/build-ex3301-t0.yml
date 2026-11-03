@@ -118,7 +118,7 @@ jobs:
       - name: Build OpenWrt
         working-directory: openwrt
         run: |
-          make -j$(nproc) 2>&1 | tee build.log
+          make FORCE=1 -j$(nproc) 2>&1 | tee build.log
 
       - name: Find initramfs image(s)
         working-directory: openwrt
