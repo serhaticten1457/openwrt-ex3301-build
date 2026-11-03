@@ -64,6 +64,8 @@ jobs:
 
           # Run defconfig to expand defaults
           make defconfig
+          # Auto-resolve new config symbols non-interactively (prevents syncconfig prompts)
+          make olddefconfig
 
           # Verify CONFIG_TARGET_econet_en751627_DEVICE_zyxel_ex3301-t0=y is still present AFTER defconfig
           grep "CONFIG_TARGET_econet_en751627_DEVICE_zyxel_ex3301-t0=y" .config || {
