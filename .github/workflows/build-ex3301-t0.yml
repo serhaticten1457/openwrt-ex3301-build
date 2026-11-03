@@ -92,7 +92,7 @@ jobs:
         working-directory: openwrt
         id: find_image
         run: |
-          IMAGE=$(find bin/targets/econet/en751627 -name "*initramfs*" -name "*.bin" | head -1)
+          IMAGE=$(find bin/targets -name "initramfs-kernel.bin" | head -1)
           if [ -z "$IMAGE" ]; then
             echo "No initramfs image found!"
             find bin/targets -name "*.bin" | head -20
