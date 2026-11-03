@@ -39,9 +39,21 @@ jobs:
             gcc-multilib g++-multilib gettext git libncurses5-dev libssl-dev \
             python3 python3-full rsync unzip zlib1g-dev file wget ccache xsltproc
 
+      - name: Download package feeds
+        working-directory: openwrt
+        run: |
+          ./scripts/feeds update -a
+          ./scripts/feeds install -a
+
       - name: Configure build (.config)
         working-directory: openwrt
         run: |
+          # List existing image and DTS files before configuring
+          echo "=== target/linux/econet/image/ ==="
+          ls -la target/linux/econet/image/ 2>/dev/null || echo "Directory does not exist"
+          echo "=== target/linux/econet/dts/ ==="
+          ls -la target/linux/econet/dts/ 2>/dev/null || echo "Directory does not exist"
+
           # Manuel .config - make defconfig çalıştırılmadan doğrudan yaz
           cat > .config << 'EOF'
           CONFIG_TARGET_econet=y
@@ -50,7 +62,10 @@ jobs:
           CONFIG_TARGET_ROOTFS_INITRAMFS=y
           EOF
 
-          # Verify CONFIG_TARGET_econet_en751627_DEVICE_zyxel_ex3301-t0=y is present
+          # Run defconfig to expand defaults
+          make defconfig
+
+          # Verify CONFIG_TARGET_econet_en751627_DEVICE_zyxel_ex3301-t0=y is still present AFTER defconfig
           grep "CONFIG_TARGET_econet_en751627_DEVICE_zyxel_ex3301-t0=y" .config || {
             echo "HATA: Profil seçilmedi, target/linux/econet/image/ icerigi:"
             ls -la target/linux/econet/image/ 2>/dev/null || echo "Directory does not exist"
@@ -59,16 +74,15 @@ jobs:
 
           echo "Config verified: CONFIG_TARGET_econet_en751627_DEVICE_zyxel_ex3301-t0=y is present"
 
-      - name: Download package feeds
-        working-directory: openwrt
-        run: |
-          ./scripts/feeds update -a
-          ./scripts/feeds install -a
-
       - name: Build OpenWrt
         working-directory: openwrt
         run: |
-          make FORCE=1 -j$(nproc) 2>&1 | tee build.log
+          set -o pipefail
+          if ! make FORCE=1 -j$(nproc) 2>&1 | tee build.log; then
+            echo "=== PARALEL DERLEME KIRILDI! HATA DETAYI ICIN V=s CALISTIRILIYOR ==="
+            make FORCE=1 -j1 V=s target/linux/compile 2>&1 | tee -a build.log
+            exit 1
+          fi
 
       - name: Find initramfs image(s)
         working-directory: openwrt
