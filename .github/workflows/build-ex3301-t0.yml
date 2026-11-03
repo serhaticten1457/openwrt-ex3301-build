@@ -64,8 +64,18 @@ jobs:
 
           # Run defconfig to expand defaults
           make defconfig
-          # Auto-resolve new config symbols non-interactively (prevents syncconfig prompts)
+          # Auto-resolve new config symbols non-interactively
           make olddefconfig
+
+          # Add missing PHY/PCI symbols to EcoNet kernel config files to prevent syncconfig prompts
+          for cfg in target/linux/econet/config-* target/linux/econet/en751627/config-*; do
+            if [ -f "$cfg" ]; then
+              echo "CONFIG_PHY_EN7528_PCIE=y" >> "$cfg"
+              echo "CONFIG_PHY_EN7528_USB=y" >> "$cfg"
+              echo "CONFIG_PCI=y" >> "$cfg"
+              echo "CONFIG_PCI_EN7528=y" >> "$cfg"
+            fi
+          done
 
           # Verify CONFIG_TARGET_econet_en751627_DEVICE_zyxel_ex3301-t0=y is still present AFTER defconfig
           grep "CONFIG_TARGET_econet_en751627_DEVICE_zyxel_ex3301-t0=y" .config || {
@@ -80,9 +90,11 @@ jobs:
         working-directory: openwrt
         run: |
           set -o pipefail
-          if ! make FORCE=1 -j$(nproc) 2>&1 | tee build.log; then
+          yes "" | make FORCE=1 -j$(nproc) 2>&1 | tee build.log
+          BUILD_EXIT_CODE=$?
+          if [ "$BUILD_EXIT_CODE" -ne 0 ]; then
             echo "=== PARALEL DERLEME KIRILDI! HATA DETAYI ICIN V=s CALISTIRILIYOR ==="
-            make FORCE=1 -j1 V=s target/linux/compile 2>&1 | tee -a build.log
+            yes "" | make FORCE=1 -j1 V=s target/linux/compile 2>&1 | tee -a build.log
             exit 1
           fi
 
