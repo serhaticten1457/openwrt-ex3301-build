@@ -67,14 +67,17 @@ jobs:
           $(eval $(call Profile,zyxel_ex3301-t0))
           EOF
 
-      - name: Configure build (defconfig)
+      - name: Configure build (.config)
         working-directory: openwrt
         run: |
-          make defconfig TARGET=econet SUBTARGET=en751627 PROFILE=zyxel_ex3301-t0
-          # Enable initramfs and MT7915E
-          echo 'CONFIG_TARGET_INITRAMFS=y' >> .config
-          echo 'CONFIG_PACKAGE_kmod-mt7915e=y' >> .config
-          echo 'CONFIG_PACKAGE_kmod-mt76-usb=y' >> .config
+          # Manuel .config - hedefi doğrudan ayarla
+          cat > .config << 'EOF'
+          CONFIG_TARGET_econet=y
+          CONFIG_TARGET_econet_en751627=y
+          CONFIG_TARGET_INITRAMFS=y
+          CONFIG_PACKAGE_kmod-mt7915e=y
+          CONFIG_PACKAGE_kmod-mt76-usb=y
+          EOF
           make defconfig
 
       - name: Download package feeds
