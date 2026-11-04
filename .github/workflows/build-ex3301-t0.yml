@@ -39,6 +39,15 @@ jobs:
           git merge --no-edit pr25475
           echo "Merged PR #25475 branch pr25475"
 
+      - name: Add read-only protection to critical NAND partitions
+        working-directory: openwrt
+        run: |
+          # Add read-only to factory_data, factory, rom-d, misc, reservearea, tclinux_kernel, ubi
+          for label in factory_data factory rom-d misc reservearea tclinux_kernel ubi; do
+            sed -i "/label = \"${label}\"/,/reg = /{ /reg = /a\\t\tread-only;\n\t\t\n}" target/linux/econet/dts/en751627_zyxel_ex3301-t0.dts
+          done
+          echo "Partition protection added"
+
       - name: Install build dependencies
         run: |
           sudo apt-get update
@@ -67,6 +76,13 @@ jobs:
           CONFIG_TARGET_econet_en751627=y
           CONFIG_TARGET_econet_en751627_DEVICE_zyxel_ex3301-t0=y
           CONFIG_TARGET_ROOTFS_INITRAMFS=y
+          CONFIG_PACKAGE_luci=y
+          CONFIG_PACKAGE_luci-ssl=y
+          CONFIG_PACKAGE_luci-app-firewall=y
+          CONFIG_PACKAGE_iwinfo=y
+          CONFIG_PACKAGE_iw=y
+          CONFIG_PACKAGE_pciutils=y
+          CONFIG_PACKAGE_ethtool=y
           EOF
 
           # Add missing PHY/PCI symbols to EcoNet kernel config files BEFORE defconfig to prevent syncconfig prompts
