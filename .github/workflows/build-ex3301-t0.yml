@@ -107,16 +107,18 @@ jobs:
         working-directory: openwrt
         id: find_image
         run: |
-          IMAGES=$(find bin/targets/ -type f \( -name "*.bin" -o -name "*.itb" -o -name "*initramfs*" \) 2>/dev/null | head -20)
+          IMAGES=$(find bin/targets/ -type f \( -name "*.bin" -o -name "*.itb" -o -name "*initramfs*" \) 2>/dev/null | grep 'ex3301-t0' | head -20)
           if [ -z "$IMAGES" ]; then
-            echo "No .bin/.itb/initramfs files found anywhere in bin/targets!"
+            echo "No ex3301-t0 .bin/.itb/initramfs files found anywhere in bin/targets!"
             echo "Searching all bin/targets..."
             find bin/targets -type f 2>/dev/null | head -50
             exit 1
           fi
           echo "Found images:"
           echo "$IMAGES"
-          echo "image_list=$IMAGES" >> $GITHUB_OUTPUT
+          echo "image_list<<EOF" >> $GITHUB_OUTPUT
+          echo "$IMAGES" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
 
       - name: Upload initramfs artifacts
         uses: actions/upload-artifact@v4
