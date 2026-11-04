@@ -43,9 +43,11 @@ jobs:
         working-directory: openwrt
         run: |
           # Add read-only to factory_data, factory, rom-d, misc, reservearea, tclinux_kernel, ubi
-          for label in factory_data factory rom-d misc reservearea tclinux_kernel ubi; do
-            sed -i "/label = \"${label}\"/,/reg = /{ /reg = /a\\t\tread-only;\n\t\t\n}" target/linux/econet/dts/en751627_zyxel_ex3301-t0.dts
-          done
+          awk '
+            /label = / { current_label = $0; gsub(/.*label = "/, "", current_label); gsub(/\".*/, "", current_label) }
+            /reg = / && current_label ~ /^(factory_data|factory|rom-d|misc|reservearea|tclinux_kernel|ubi)$/ { print; print "\t\tread-only;"; next }
+            { print }
+          ' target/linux/econet/dts/en751627_zyxel_ex3301-t0.dts > tmp.dts && mv tmp.dts target/linux/econet/dts/en751627_zyxel_ex3301-t0.dts
           echo "Partition protection added"
 
       - name: Install build dependencies
