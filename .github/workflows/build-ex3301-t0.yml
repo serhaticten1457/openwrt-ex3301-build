@@ -42,11 +42,11 @@ jobs:
       - name: Add read-only protection to critical NAND partitions
         working-directory: openwrt
         run: |
-          # Add read-only to wwan, factory_data, rom-d, reservearea ONLY
-          # NOTE: tclinux_kernel and ubi must remain WRITABLE for sysupgrade/rootfs
+          # Add read-only to wwan, factory_data, rom-d, reservearea, factory ONLY
+          # NOTE: tclinux and tclinux_alt must remain WRITABLE for sysupgrade/rootfs/alt-boot
           awk '
             /label = / { current_label = $0; gsub(/.*label = "/, "", current_label); gsub(/".*/, "", current_label) }
-            /reg = / && current_label ~ /^(wwan|factory_data|rom-d|reservearea)$/ { print; print "\t\tread-only;"; next }
+            /reg = / && current_label ~ /^(wwan|factory_data|rom-d|reservearea|factory)$/ { print; print "\t\tread-only;"; next }
             { print }
           ' target/linux/econet/dts/en751627_zyxel_ex3301-t0.dts > tmp.dts && mv tmp.dts target/linux/econet/dts/en751627_zyxel_ex3301-t0.dts
           echo "Partition protection added"
