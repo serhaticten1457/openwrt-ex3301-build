@@ -114,11 +114,10 @@ jobs:
         working-directory: openwrt
         run: |
           set -o pipefail
-          make FORCE=1 -j$(nproc) < /dev/null 2>&1 | tee build.log
+          make FORCE=1 -j$(nproc) V=s < /dev/null 2>&1 | tee build.log
           BUILD_EXIT_CODE=$?
           if [ "$BUILD_EXIT_CODE" -ne 0 ]; then
-            echo "=== PARALEL DERLEME KIRILDI! HATA DETAYI ICIN V=s CALISTIRILIYOR ==="
-            make FORCE=1 -j1 V=s target/linux/compile 2>&1 | tee -a build.log
+            echo "=== BUILD FAILED! LOG SAVED TO build.log ==="
             exit 1
           fi
 
